@@ -46,8 +46,8 @@ This will install the OpenAI package required for your project.
 Now, copy your Python script and code files to the appropriate directory. This will allow you to execute your program from anywhere in the system.
 
 ```bash
-sudo cp app.py /usr/local/bin
-sudo cp cobash.py /usr/local/bin
+sudo cp app /usr/local/bin
+sudo cp cobash /usr/local/bin
 ```
 ## 7. Give execute permissions
 
@@ -62,7 +62,7 @@ chmod +x cobash
 Once everything is set up, you can run the program directly from the command line:
 
 ```bash
-your_script.py
+cobash
 ```
 
 Since the script is now located in `/usr/local/bin`, you can execute it from anywhere in the terminal.
