@@ -49,8 +49,15 @@ Now, copy your Python script and code files to the appropriate directory. This w
 sudo cp app.py /usr/local/bin
 sudo cp cobash.py /usr/local/bin
 ```
+## 7. Give execute permissions
 
-## 5. Run the Program
+To give **execute** permissions to a file using the `chmod` command, you can use the following command in your terminal:
+
+```bash
+chmod +x cobash
+```
+
+## 6. Run the Program
 
 Once everything is set up, you can run the program directly from the command line:
 
