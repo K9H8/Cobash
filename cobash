@@ -1,4 +1,12 @@
-#!/bin/zsh 
+#!/bin/zsh
 
-source path/to/myvenv/bin/activate
-/usr/local/app
+# Activate the virtual environment
+source /home/kali/Desktop/Documents/Projects/cobash/venv/bin/activate
+
+# Suppress ALSA and JACK warnings by setting environment variables
+export SDL_AUDIODRIVER=dummy
+export ALSA_DEBUG=0
+export PYTHONWARNINGS="ignore"
+
+# Run the Python script and redirect stderr to /dev/null to suppress additional warnings
+/usr/local/bin/cobashpy 2>/dev/null
