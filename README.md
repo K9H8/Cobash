@@ -2,6 +2,11 @@
 
 This project is an intelligent copilot for the Kali Linux terminal, leveraging the capabilities of the OpenAI API to enhance user interaction and productivity. Currently in the very early stages of development, the copilot allows users to execute terminal commands while providing detailed explanations and insights for each action.
 
+
+https://github.com/user-attachments/assets/1d7e2f83-2298-484b-97e0-5dae446e358a
+
+
+
 ## Features
 
 - **Command Execution**: Execute terminal commands directly through the copilot.
