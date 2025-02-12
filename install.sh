@@ -20,6 +20,23 @@ fi
 INSTALL_PATH="$(pwd)"
 
 # ---------------------------------------------------------------
+# 2) Check for venv module and install if needed
+# ---------------------------------------------------------------
+if ! python3 -c "import venv" &>/dev/null; then
+    echo "Python venv module not found. Installing..."
+    if command -v apt-get &>/dev/null; then
+        apt-get update && apt-get install -y python3-venv
+    elif command -v dnf &>/dev/null; then
+        dnf install -y python3-venv
+    elif command -v yum &>/dev/null; then
+        yum install -y python3-venv
+    else
+        echo "Error: Could not install python3-venv. Please install it manually."
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------
 # 2) Create a Python virtual environment in $INSTALL_PATH/venv.
 # ---------------------------------------------------------------
 # Make sure Python 3 is available
@@ -130,3 +147,5 @@ fi
 
 # Make cobashpy executable
 chmod +x "${INSTALL_PATH}/cobashpy"
+
+echo "Installed Succesfully."
