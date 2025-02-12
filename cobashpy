@@ -1,92 +1,138 @@
 #!/usr/bin/env python3
 
-from openai import OpenAI
-import subprocess
+import os
 import sys
-sys.path.append('/home/kali/Desktop/Documents/Projects/cobash/')
+import subprocess
+from openai import OpenAI
+import speech_recognition as sr
+from dotenv import load_dotenv
 
-from vtt import mic_to_text_auto_stop
+# Configure environment settings to suppress warnings
+os.environ.update({
+    "PYTHONWARNINGS": "ignore",
+    "SDL_AUDIODRIVER": "dummy",  # Disable sound backends
+    "ALSA_DEBUG": "0"
+})
+sys.stderr = open(os.devnull, 'w')
 
-# Set API key in client
-client = OpenAI(
-    api_key="OpenAi-Key")
-# set system message !TODO 
-system_message = """
-You are a assistant specialized in generating terminal commands and explanations for cybersecurity tasks using Kali Linux. When given a prompt, accurate terminal command or an explanation tailored for a cybersecurity.
+class AICommandAssistant:
+    def __init__(self):
+        # Load environment variables
+        load_dotenv()
+        
+        # Get API key from environment variable
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is not set")
+            
+        # Initialize OpenAI client with API key
+        self.client = OpenAI(api_key=api_key)
+        
+        # Define system message for the AI assistant
+        self.system_message = """
+        You are a assistant specialized in generating terminal commands and explanations for cybersecurity tasks using Kali Linux. When given a prompt, accurate terminal command or an explanation tailored for a cybersecurity.
 
-- if im asking for a command, reply exactly with: $1=2<command>, example: (request: can you ping google reply: "$1=2ping 8.8.8.8)" 
-- if you're short of info ask me instead.
-- If i ask for an explanation, give two sentences.
-"""
+        - if im asking for a command, reply exactly with: $1=2<command>, example: (request: can you ping google reply: "$1=2ping 8.8.8.8)" 
+        - if you're short of info ask me instead.
+        - If i ask for an explanation, give two sentences.
+        """
+        
+        # Initialize conversation history with system message
+        self.conversation_history = [
+            {"role": "system", "content": self.system_message}
+        ]
 
-# Initialize conversation history
-conversation_history = [
-    {"role": "system", "content": system_message}
-]
+    def ask_gpt(self, query):
+        """Send query to GPT and get response"""
+        # Add user query to conversation
+        self.conversation_history.append({"role": "user", "content": query})
 
+        # Get response from GPT
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            max_tokens=250,
+            temperature=0.5,
+            messages=self.conversation_history
+        )
 
-# Define the prompt using messages
-def ask_gpt(query):
-    # Add user query to conversation history
-    conversation_history.append({"role": "user", "content": query})
+        # Store assistant's response
+        assistant_response = response.choices[0].message.content
+        self.conversation_history.append({"role": "assistant", "content": assistant_response})
+        return assistant_response
 
-    # Make the chat completion request
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        max_tokens=250,
-        temperature=0.5,
-        messages=conversation_history
-    )
+    def handle_response(self, query, response):
+        """Process and execute the assistant's response"""
+        if response.startswith("$1=2"):
+            # Extract and execute command
+            command = response[4:].strip()
+            subprocess.run(f"echo 'Executing command: {command}'", shell=True)
+            
+            try:
+                command_output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, text=True)
+                print(command_output, "\n")
+                self.conversation_history.append({"role": "assistant", "content": f"Command output: {command_output}"})
+            except subprocess.CalledProcessError as e:
+                error_output = e.output
+                print(f"Error executing command: {error_output} \n")
+                self.conversation_history.append({"role": "assistant", "content": f"Error output: {error_output}"})
+        else:
+            # Print non-command response
+            print(response, "\n")
 
-    # Add assistant response to conversation history
-    assistant_response = response.choices[0].message.content
-    conversation_history.append({"role": "assistant", "content": assistant_response})
+    def mic_to_text_auto_stop(self):
+        """Convert speech to text using microphone input"""
+        recognizer = sr.Recognizer()
+        mic = sr.Microphone()
+        
+        with mic as source:
+            recognizer.adjust_for_ambient_noise(source)
+            recognizer.pause_threshold = 2
 
-    return assistant_response
+            try:
+                print("Listening...")
+                audio = recognizer.listen(source, timeout=15)
+                
+                print("Recognizing speech...\n")
+                text = recognizer.recognize_google(audio)
+                print(text, "\n")
+                return text
+                
+            except sr.WaitTimeoutError:
+                print("No speech detected within the timeout period.")
+            except sr.UnknownValueError:
+                print("Speech was unintelligible.")
+            except sr.RequestError as e:
+                print(f"Could not request results from Google Speech Recognition service; {e}")
+        return None
 
-# Main function to handle user input and processing
+    def run(self):
+        """Main execution loop"""
+        if len(sys.argv) > 1:
+            # Handle command line arguments
+            query = " ".join(sys.argv[1:])
+            response = self.ask_gpt(query)
+            self.handle_response(query, response)
+        else:
+            # Interactive mode
+            while True:
+                query = input("\n")
+                
+                if query == "v":
+                    query = self.mic_to_text_auto_stop()
+                elif query.lower() in ["exit", "quit"]:
+                    subprocess.run("echo 'Goodbye!'", shell=True)
+                    break
+
+                if query:
+                    response = self.ask_gpt(query)
+                    self.handle_response(query, response)
+                else:
+                    print("Empty request\n")
+
 def main():
-    if len(sys.argv) > 1:
-        # Handle command-line arguments as a single query
-        query = " ".join(sys.argv[1:])
-        response = ask_gpt(query)
-        handle_response(query, response)
-
-    else:
-        # Interactive mode
-        while True:
-            query = input("\n")
-            if query == "v":
-                query = mic_to_text_auto_stop()
-
-            elif query.lower() in ["exit", "quit"]:
-                subprocess.run("echo 'Goodbye!'", shell=True)
-                break
-
-            if query:
-                response = ask_gpt(query)
-
-                handle_response(query, response)
-            else :
-                print("Empty request\n")
-# Function to handle the response from GPTa
-def handle_response(query, response):
-    if response.startswith("$1=2"):
-        command = response[4:].strip()
-        subprocess.run(f"echo 'Executing command: {command}'", shell=True)
-        try:
-            command_output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, text=True)
-            print(command_output)
-            conversation_history.append({"role": "assistant", "content": f"Command output: {command_output}"}) 
-        except:
-            error_output = e.output
-            print(f"Error executing command: {error_output}")
-            conversation_history.append({"role": "assistant", "content": f"Error output: {error_output}"})
-
-    else:
-
-        # Output the explanation or any non-command response
-        print(response)
+    """Initialize and run the AI Command Assistant"""
+    assistant = AICommandAssistant()
+    assistant.run()
 
 if __name__ == "__main__":
     main()
