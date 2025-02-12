@@ -24,7 +24,11 @@ INSTALL_PATH="$(pwd)"
 # ---------------------------------------------------------------
 if ! python3 -c "import venv" &>/dev/null; then
     echo "Python venv module not found. Installing..."
-    if command -v apt-get &>/dev/null; then
+    # First try pip
+    if command -v pip3 &>/dev/null; then
+        pip3 install virtualenv
+    # If pip fails, try system package manager
+    elif command -v apt-get &>/dev/null; then
         apt-get update && apt-get install -y python3-venv
     elif command -v dnf &>/dev/null; then
         dnf install -y python3-venv
